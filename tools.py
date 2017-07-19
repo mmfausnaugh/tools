@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import scipy as sp
 from scipy import optimize,linalg
 from scipy.interpolate import interp1d,interp2d
@@ -365,59 +367,59 @@ def equ_to_ecliptic(ra,dec):
         
     return lam*206265/3600., sp.arcsin(sin_beta)*206265/3600.
     
-class MatlabStructure(object):
-    """A class to make working with data structures from matlab tractable.
-    This is based on matlab files produced by running ray-tracing
-    calculations on models of the TESS lenses, went to me by Deb Woods (of
-    Lincoln Labs).  
-    
-    The main point are: 
-    1) read the file, using h5py.
-    2) get an initial list of keys for the groups, and likely subgroups
-    3) check if something is a group or dataset---
-       if group get keys, if dataset get dimensions
-    4) dereference the data, given the group and dimensions.
-    
-    Likely won't work on all .mat files, but a good starting point.
-    """    
-    def __init__(self, infile):
-        self._file_buffer = h5py.File(infile)
-        self.top_keys = [ key for key in self._file_buffer.keys() if '#refs' not in key ]
-        self.sub_keys = {}
-        
-        for k in self.top_keys:
-            if isinstance(self._file_buffer[k], h5py._hl.group.Group):
-                if k == '#refs#': continue
-                self.sub_keys[k] = [ key for key in self._file_buffer[k].keys() ]
-
-    def print_data_keys(self):
-        for key in self.top_keys:
-            print(key)
-            for k in self.sub_keys[key]:
-                print('     ',k)
-            
-    def check_group(self,topkey,subkey):
-        if isinstance(self._file_buffer[topkey][subkey], h5py._hl.group.Group):
-            print('{sub:s} in {top:s} is a group'.format(sub=subkey,top=topkey))
-            newkeys = [ k for k in self._file_buffer[topkey][subkey].keys() ]
-            print('new group with keys:')
-            print(newkeys)
-            return newkeys
-        else:
-            print('{sub:s} in {top:s} not a group'.format(sub=subkey,top=topkey))
-
-    def check_data(self,topkey,subkey):
-        if isinstance(self._file_buffer[topkey][subkey], h5py._hl.dataset.Dataset):
-            print('{sub:s} in {top:s} is a data set of shape:'.format(sub=subkey,top=topkey))
-            print(self._file_buffer[topkey][subkey].shape)
-            return self._file_buffer[topkey][subkey].shape
-        else:
-            print('{sub:s} in {top:s} not a dataset'.format(sub=subkey,top=topkey))
-            
-    def dereference(self, topkey, subkey,indices):
-        return self._file_buffer[
-                                             self._file_buffer[topkey][subkey][indices]
-                                            ][:]
+###class MatlabStructure(object):
+###    """A class to make working with data structures from matlab tractable.
+###    This is based on matlab files produced by running ray-tracing
+###    calculations on models of the TESS lenses, went to me by Deb Woods (of
+###    Lincoln Labs).  
+###    
+###    The main point are: 
+###    1) read the file, using h5py.
+###    2) get an initial list of keys for the groups, and likely subgroups
+###    3) check if something is a group or dataset---
+###       if group get keys, if dataset get dimensions
+###    4) dereference the data, given the group and dimensions.
+###    
+###    Likely won't work on all .mat files, but a good starting point.
+###    """    
+###    def __init__(self, infile):
+###        self._file_buffer = h5py.File(infile)
+###        self.top_keys = [ key for key in self._file_buffer.keys() if '#refs' not in key ]
+###        self.sub_keys = {}
+###        
+###        for k in self.top_keys:
+###            if isinstance(self._file_buffer[k], h5py._hl.group.Group):
+###                if k == '#refs#': continue
+###                self.sub_keys[k] = [ key for key in self._file_buffer[k].keys() ]
+###
+###    def print_data_keys(self):
+###        for key in self.top_keys:
+###            print(key)
+###            for k in self.sub_keys[key]:
+###                print('     ',k)
+###            
+###    def check_group(self,topkey,subkey):
+###        if isinstance(self._file_buffer[topkey][subkey], h5py._hl.group.Group):
+###            print('{sub:s} in {top:s} is a group'.format(sub=subkey,top=topkey))
+###            newkeys = [ k for k in self._file_buffer[topkey][subkey].keys() ]
+###            print('new group with keys:')
+###            print(newkeys)
+###            return newkeys
+###        else:
+###            print('{sub:s} in {top:s} not a group'.format(sub=subkey,top=topkey))
+###
+###    def check_data(self,topkey,subkey):
+###        if isinstance(self._file_buffer[topkey][subkey], h5py._hl.dataset.Dataset):
+###            print('{sub:s} in {top:s} is a data set of shape:'.format(sub=subkey,top=topkey))
+###            print(self._file_buffer[topkey][subkey].shape)
+###            return self._file_buffer[topkey][subkey].shape
+###        else:
+###            print('{sub:s} in {top:s} not a dataset'.format(sub=subkey,top=topkey))
+###            
+###    def dereference(self, topkey, subkey,indices):
+###        return self._file_buffer[
+###                                             self._file_buffer[topkey][subkey][indices]
+###                                            ][:]
 
 
     
