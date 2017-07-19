@@ -4,7 +4,7 @@ from scipy.interpolate import interp1d,interp2d
 import matplotlib.pyplot as plt
 import scipy.fftpack as fft
 
-import h5py
+#import h5py
 
 #######Python stuff##############
 
@@ -25,7 +25,7 @@ class ProtectAttr(object):
     etc.  For more specialized setters, use @property.  If you want to
     resuse the setter, define a new, module-specific descriptor.
 
-    Somewhere on the internet, a pereson suggested using WeakKeyDict
+    Somewhere on the internet, a person suggested using WeakKeyDict
     instead of getattr/setattr, in order to prevent memory leaks.
     Probably won't be an issue, but maybe something to test if there
     are problems.
@@ -160,6 +160,18 @@ def rebin(x,y,z,bins):
             
     return sp.array(xout),sp.array(yout),sp.array(zout)
 
+def gen_lc(t, tau_damp):
+    """ alt method for doing a drw"""
+
+    x = sp.randn(t.size)
+
+    dif =  t - t.reshape(t.size,1)
+    covar = sp.exp(-abs(dif)/tau_damp)
+    l = linalg.cholesky(covar)
+
+    return sp.asarray(x*sp.matrix(l))[0]
+    
+    
 
 class FakeLC(object):
     """
