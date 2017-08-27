@@ -1,8 +1,8 @@
-import numpy as np
 import scipy as sp
-from scipy import interpolate as interp
-from scipy import optimize as opt
-from scipy import stats
+import matplotlib as mpl
+mpl.use('tkagg')
 import matplotlib.pyplot as plt
-from tools import *
+plt.ion()
+from tools.tools import *
+import pandas as pd
 from mapspec.spectrum import *
