@@ -439,7 +439,24 @@ def lumdist(z):
     dp = c/(H0 /3.1e13/1.e6)*integral[0]
     
     return (1+z)*dp/3.1e18/1.e6
-    
+
+def split_list(inlist, nlist):
+    """
+    A function to split an input list into multiple lists, to run on several cores
+    """
+    file_list = sp.genfromtxt(inlist,dtype=str)
+
+    count = 1
+    i0 = 0
+    for i in range(file_list.size):
+        if i == 0: continue
+        if i % nlist == 0:
+            sp.savetxt(inlist+ str(count), sp.c_[file_list[i0:i0 + 1000]], fmt='%s')
+            io = deepcopy(i)
+            count += 1
+        elif i == stop -1:
+            sp.savetxt(inlist + str(count),sp.c_[ file_list[i0::]], fmt='%s')
+
 #These were written before I appreciated scipy packages.  Maybe of conceptual use....
 
 ####def lininterp(x,y,shift,deltax):
