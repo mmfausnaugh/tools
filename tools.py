@@ -445,18 +445,18 @@ def lumdist(z):
     
     return (1+z)*dp/3.08568e18/1.e6
 
-import psycopg2
+#import psycopg2
 import pandas as pd
 
-class RemoteDatabase(object):
-    def __init__(self,host,user,password,dbname):
-        self.connection = psycopg2.connect( host=host, user=user, password=password, dbname=dbname)
-        
-    def do_query(self, query ) :
-        cur = self.connection.cursor()
-        cur.execute( query )
-        result = pd.DataFrame(cur.fetchall(),columns=('tic','tmag','rad','mass','lumclass','objtype'))
-        return result
+##class RemoteDatabase(object):
+##    def __init__(self,host,user,password,dbname):
+##        self.connection = psycopg2.connect( host=host, user=user, password=password, dbname=dbname)
+##        
+##    def do_query(self, query ) :
+##        cur = self.connection.cursor()
+##        cur.execute( query )
+##        result = pd.DataFrame(cur.fetchall(),columns=('tic','tmag','rad','mass','lumclass','objtype'))
+##        return result
     
 
 def split_list(inlist, nlist):
