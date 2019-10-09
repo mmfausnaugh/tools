@@ -136,32 +136,37 @@ def fitfunc_bound(func,pin,x,y,ey,pbound):
 
 ######operations on lightcurves####################
 
+def rms_slide(t,y,win_len):
+    w = sp.ones(win_len)
+    w = w/sp.sum(w)
+    #root of the sliding-mean square
+    rms1 = sp.sqrt( sp.convolve(( y - y.mean() )**2,w,mode='same'))
+    
+    if len(rms1) > len(y):
+        rms1 = sp.ones(len(y))*sp.std(y - y.mean())
+        
+    return rms1
+
 def rebin(x,y,z,bins):
     """
     For rebinning data, maybe changing the sampling of a lightcurve
     (to build signal).
     """
     index = sp.digitize(x,bins)
-    xout = []
-    yout = []
-    zout = []
-    for i in range(bins.size):
-        index2 = sp.where(index==i)[0]
-        if index2.size > 0:
-            xout.append(sp.mean(x[index2]))
-            yout.append(sp.mean(y[index2]))
+    xout = sp.zeros(len(bins) )
+    yout = sp.zeros(len(bins) )
+    zout = sp.zeros(len(bins) )
+    print(bins[-1], x[-1])
+    print(len(bins),len(xout),max(index))
+    for i in sp.unique(index):
+        m = sp.where(index == i)[0]
+        xout[i - 1] = sp.mean(x[m])
+        yout[i - 1] = sp.mean(y[m])
+        zout[i - 1] = sp.mean(z[m])
 
-            z1 = sp.std(y[index2])/sp.sqrt(y[index2].size)
-            z2 = sp.sqrt(1./sp.sum(1./z[index2]**2))
-            zout.append(max(z1,z2))
-
-        else:
-            xout.append(bins[i])
-            yout.append(0)
-            zout.append(0)
-                        
+        
             
-    return sp.array(xout),sp.array(yout),sp.array(zout)
+    return xout, yout,zout
 
 def gen_lc(t, tau_damp):
     """ alt method for doing a drw"""
