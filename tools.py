@@ -156,8 +156,6 @@ def rebin(x,y,z,bins):
     xout = sp.zeros(len(bins) )
     yout = sp.zeros(len(bins) )
     zout = sp.zeros(len(bins) )
-    print(bins[-1], x[-1])
-    print(len(bins),len(xout),max(index))
     for i in sp.unique(index):
         m = sp.where(index == i)[0]
         xout[i - 1] = sp.mean(x[m])
