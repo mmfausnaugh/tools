@@ -6,4 +6,4 @@ plt.ion()
 from tools.tools import *
 import pandas as pd
 from astropy.io import fits
-from mapspec.spectrum import *
+from mapspec.mapspec.spectrum import *
