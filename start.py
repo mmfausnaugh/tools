@@ -5,4 +5,5 @@ import matplotlib.pyplot as plt
 plt.ion()
 from tools.tools import *
 import pandas as pd
+from astropy.io import fits
 from mapspec.spectrum import *
