@@ -134,6 +134,13 @@ def fitfunc_bound(func,pin,x,y,ey,pbound):
 #    p,covar = optimize.curve_fit( func, x, y, p0=pin, sigma=ey, bounds=pbound, method='trf')
 #    return p,covar
 
+
+#sometimes, I just want to see how good a fit to my residuals
+#reproduces white noise.  No weights
+def fit_gaussian(x,y):
+    gauss = lambda x,p: p[2]*sp.exp(-0.5*(x - p[0])**2/p[1]**2)
+    p,covar = fitfunc(gauss, [0.0, 1.0, max(y)], x,y, sp.ones(len(y))  )
+    return p,covar
 ######operations on lightcurves####################
 
 def rms_slide(t,y,win_len):
@@ -293,6 +300,68 @@ class RandomField(object):
         z  = fft.ifft2(f*f.size).real
         return (z - z.min())/(z.max() - z.min())
 
+
+class ARModel(object):
+    def __init__(self,y, N_memory, mode='timeseries'):
+        self.y = y
+        acf = sp.correlate(f,f,'same')
+        self.acf = acf
+        self.N_memory = N_memory        
+        self.mode = mode
+
+        if self.mode == 'timeseries':
+            self.coeffs = self.fit_coeffs(self.y, self.N_memory)
+        elif self.mode == 'acf':
+            self.coeffs = self.fit_coeffs(self.acf, self.N_memory)
+        else:
+            raise ValueError("must instantiate ARModel with mode equal to 'timeseries' or 'acf'")
+
+        self.model_values = sp.convolve(self.y,self.coeffs,'valid')
+        self.undefined_times =  sp.zeros(len(self.y),dtype=bool)
+        self.undefined_times[0:self.N_memory] = True
+
+    def fit_coeffs(self, acf, N_memory):        
+        acf_roll = []
+        for n in range(N_memory):
+            acf_tmp = sp.roll(acf, -(n+1))
+            #to avoid wrap around, set the end of the lagged acf to zero
+            acf_tmp[-(n+1):] = 0
+            acf_roll.append(acf_tmp)
+        
+        acf_roll = sp.array(acf_roll)
+    
+        #fill in the design matrices
+        #len(acf)x1 matrix
+        C = []
+        for ii in range(len(acf_roll)):
+            C.append(sp.sum(acf*acf_roll[ii]))
+        C = sp.array(C)
+
+        #len(acf)xN_memory matrix
+        A = []
+        for ii in range(len(acf_roll)):
+            row = []
+            for jj in range(len(acf_roll)):
+                row.append(sp.sum(acf_roll[ii]*acf_roll[jj]))
+            A.append(row)
+        A = sp.array(A)
+
+        B = linalg.solve(A,C)
+        return B
+
+    def get_response(self):
+        extrap = sp.zeros(len(self.coeffs))
+        extrap[-1] = 1.0
+        for ii in range(len(self.coeffs)):
+            extrap[len(coeffs) -1 - ii] = sp.sum(extrap*self.coeffs[::-1])
+
+        return extrap[::-1]
+
+    def extrapolate(self,npredict):
+        extrap = self.y[-len(coeffs):]
+        for ii in range(npredict):
+            extrap = sp.r_[extrap, sp.sum(extrap[-len(coeffs):]*coeffs[::-1]) ]
+        return extrap        
 
 def decimal_to_sexigesimal(ra,dec, return_string=True):
     ra1 = (ra*12./180).astype(int)
