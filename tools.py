@@ -3,6 +3,7 @@ from __future__ import print_function
 import scipy as sp
 from scipy import optimize,linalg
 from scipy.interpolate import interp1d,interp2d
+from scipy.interpolate import splrep, splev
 from scipy.integrate import quad
 import matplotlib.pyplot as plt
 import scipy.fftpack as fft
@@ -94,20 +95,25 @@ def linfit_xerr(x,y,ex,ey):
     return p,covar
 
 def fitfunc(func,pin,x,y,ey):
-    """
-    Non-linear least square fitter.  Assumes no errors in x.  Utilizes
+    """Non-linear least square fitter.  Assumes no errors in x.  Utilizes
     scipy.optimize.leastsq.  Uses a Levenberg-Marquardt algorithm
     (gradient chasing and Newton's method).  The user must provide an
     object that is the functional form to be fit, as well as initial
     guesses for the parameters.
 
+    The function definition should call f(x,params), where x is the
+    independent variable and params is an array
+
     This function returns the parameters and the covariance matrix.
     Note that leastsq returns the jacobian, a message, and a flag as
     well.
-    
+
     """
     merit = lambda params,func,x,y,ey:  (y - func(x,params))/ey
     p,covar,dum1,dum2,dum3 = optimize.leastsq(merit,pin,args=(func,x,y,ey),xtol = 1e-8,full_output=1)
+    #print(dum1)
+    #print(dum2)
+    #print(dum3)
     return p,covar
 
 def fitfunc_bound(func,pin,x,y,ey,pbound):
@@ -543,7 +549,11 @@ def split_list(inlist, nlist):
         elif i == stop -1:
             sp.savetxt(inlist + str(count),sp.c_[ file_list[i0::]], fmt='%s')
 
-        
+def detrend_lc_with_splines(t,f,smooth=1.e7):
+    #originally developed for akshata, this does a reasonably job of
+    #fitting a smooth spline to a TESS 2min LC
+    spline_params = splrep(t,f,w = sp.ones(len(f)), k=3, s= smooth)
+    return splev(t, spline_params)
             
             
 #These were written before I appreciated scipy packages.  Maybe of conceptual use....
