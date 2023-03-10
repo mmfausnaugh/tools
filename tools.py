@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import numpy as np
 import scipy as sp
 from scipy import optimize,linalg
 from scipy.interpolate import interp1d,interp2d
@@ -160,7 +161,7 @@ def rms_slide(t,y,win_len):
         
     return rms1
 
-def rebin(x,y,z,bins):
+def rebin(x,y,z,bins, use_std=False, rescale=False):
     """
     For rebinning data, maybe changing the sampling of a lightcurve
     (to build signal).
@@ -170,10 +171,17 @@ def rebin(x,y,z,bins):
     yout = sp.zeros(len(bins) )
     zout = sp.zeros(len(bins) )
     for i in sp.unique(index):
+        if i == 0 or i == len(bins):
+            continue
         m = sp.where(index == i)[0]
         xout[i - 1] = sp.mean(x[m])
         yout[i - 1] = sp.mean(y[m])
-        zout[i - 1] = sp.mean(z[m])
+        if use_std:
+            zout[i - 1] = sp.std(y[m])
+            if rescale:
+                zout[i -1] = zout[i - 1]/np.sqrt(len(y[m]))
+        else:
+            zout[i - 1] = sp.mean(z[m])
 
         
             
@@ -219,7 +227,7 @@ class FakeLC(object):
         self.fturn  = 1./t_turn
 
     def __call__(self,t):
-        npoints = int(len(t)*200.0)
+        npoints = int(len(t)*4.0)
         #adding 1 to the range to make sure that interpolation
         #array has a larger domain than t, else scipy raises an error
         tstep = (t[-1] + 1 - t[0])/npoints
@@ -245,6 +253,7 @@ class FakeLC(object):
         y = fft.ifft(f*(2*npoints - 1))
         #take out the scaling
         y = 2*(y.real - y.real.min())/(y.real.max() - y.real.min()) - 1 
+
         
         tout = sp.r_[t[0] : t[-1]  + 1 + tstep : tstep]
         interp = interp1d(tout,y)
@@ -385,6 +394,8 @@ def decimal_to_sexigesimal(ra,dec, return_string=True):
 
 def sexigesimal_to_decimal(ra,dec, return_string=True):
     RA = ((ra[2]/60. + ra[1])/60. + ra[0])*180/12.
+    #bug exists, for dec between -01 and 00, will choose the wrong
+    #conditional
     if dec[0] < 0:
         DEC = -(dec[2]/60. + dec[1])/60. + dec[0]
     else:
@@ -513,7 +524,7 @@ def lumdist(z):
 
     #calculate the luminosity distnace, returns in Mpc
     integral = quad(E, 0, z, args=(Omega_m))
-    #h0 in km/s
+    #h0 in km/s, must convert to 1./s
     dp = c/(H0 /3.08568e13/1.e6)*integral[0]
     
     return (1+z)*dp/3.08568e18/1.e6
@@ -554,8 +565,40 @@ def detrend_lc_with_splines(t,f,smooth=1.e7):
     #fitting a smooth spline to a TESS 2min LC
     spline_params = splrep(t,f,w = sp.ones(len(f)), k=3, s= smooth)
     return splev(t, spline_params)
-            
-            
+
+
+
+def calc_t90(x,y, plot=False):
+
+    #assume y is already sorted
+    cumsum = np.cumsum(y)
+    cumsum /= np.sum(y)
+
+
+    abs_r05 = abs(cumsum - 0.05)
+    abs_r95 = abs(cumsum - 0.95)
+    m05 = np.where( abs_r05 == min(abs_r05))[0][0]
+    m95 = np.where( abs_r95 == min(abs_r95))[0][0]
+    if plot == True:
+        plt.figure()
+        plt.plot(x,cumsum,'k')
+        yl,yh = plt.gca().get_ylim()
+        xl,xh = plt.gca().get_xlim()
+
+        plt.plot([xl,xh],[0.05,0.05],'r')
+        plt.plot([xl,xh],[0.95,0.95],'r')
+        plt.plot([x[m05],x[m05]],[yl,yh],'r')
+        plt.plot([x[m95],x[m95]],[yl,yh],'r')
+
+        plt.gca().set_ylim([yl,yh])
+        plt.gca().set_xlim([xl,xh])
+
+    if plot == False:
+        return x[m95] - x[m05]
+    else:
+        return x[m95] - x[m05], plt.gcf(), plt.gca()
+    
+
 #These were written before I appreciated scipy packages.  Maybe of conceptual use....
 
 ####def lininterp(x,y,shift,deltax):
