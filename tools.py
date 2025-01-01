@@ -13,6 +13,7 @@ import scipy.fftpack as fft
 
 #######Python stuff##############
 
+
 class ProtectAttr(object):
     """
     This is a descriptor that imitates the @property decorator.  The
@@ -161,7 +162,7 @@ def rms_slide(t,y,win_len):
         
     return rms1
 
-def rebin(x,y,z,bins, use_std=False, rescale=False):
+def rebin(x,y,z,bins, use_std=False, rescale_error=False, min_points=None):
     """
     For rebinning data, maybe changing the sampling of a lightcurve
     (to build signal).
@@ -174,14 +175,19 @@ def rebin(x,y,z,bins, use_std=False, rescale=False):
         if i == 0 or i == len(bins):
             continue
         m = sp.where(index == i)[0]
+        if min_points is not None:
+            if len(x[m]) < min_points:
+                continue
+            
         xout[i - 1] = sp.mean(x[m])
         yout[i - 1] = sp.mean(y[m])
         if use_std:
             zout[i - 1] = sp.std(y[m])
-            if rescale:
-                zout[i -1] = zout[i - 1]/np.sqrt(len(y[m]))
         else:
             zout[i - 1] = sp.mean(z[m])
+
+        if rescale_error:
+            zout[i -1] = zout[i - 1]/np.sqrt(len(y[m]))
 
         
             
@@ -216,7 +222,8 @@ class FakeLC(object):
     (zero power for longterm trends)
     """
 
-    def __init__(self,alpha,t_break,t_turn):
+    def __init__(self,alpha,t_break,t_turn,
+                 low_freq_power=False):
         self.alpha = sp.sqrt(alpha)
 
         if t_break == 0:
@@ -225,6 +232,8 @@ class FakeLC(object):
             self.fbreak  = 1./t_break
 
         self.fturn  = 1./t_turn
+
+        self.low_freq_power = low_freq_power
 
     def __call__(self,t):
         npoints = int(len(t)*4.0)
@@ -241,9 +250,14 @@ class FakeLC(object):
                   ]
         
         #this could be adjusted  for amplitude of gaussian white noise
-        p[feval > self.fbreak] = 0.0 
-        #this could be adjusted for long term trends (mean, linear, etc.)
-        p[feval < self.fturn]  = 0.0
+        p[feval > self.fbreak] = 0.0
+        if self.low_freq_power:
+            abs_diff = abs( feval - self.fturn )
+            p[feval < self.fturn]  = p[ abs_diff == min(abs_diff) ]
+        else:
+            #this could be adjusted for long term trends (mean, linear, etc.)
+            p[feval < self.fturn]  = 0.0
+        
         f *= p
 
         f = sp.r_[f,sp.conj(f[-1:0:-1])]
@@ -403,6 +417,13 @@ def sexigesimal_to_decimal(ra,dec, return_string=True):
 
 
     return RA,DEC
+
+def parse_sexigesimal(instring):
+    ra,dec = instring.replace(',',' ').split()
+    ra_list = [ float(e)  for e in ra.split(':') ]
+    dec_list = [ float(e) for e in dec.split(':') ]
+    return ra_list,dec_list
+
 
 def boxgraph(ax):
     xl,xh = ax.get_xlim()
@@ -597,6 +618,17 @@ def calc_t90(x,y, plot=False):
         return x[m95] - x[m05]
     else:
         return x[m95] - x[m05], plt.gcf(), plt.gca()
+
+
+def Planck(lam,T):
+
+    h = 6.63e-27
+    k = 1.4e-16
+    c = 2.9979e10
+    print(h*c/k/T, 0.290/T)
+    num = 2*h*c**2/lam**5
+    denom = np.exp(h*c/lam/k/T) - 1
+    return num/denom
     
 
 #These were written before I appreciated scipy packages.  Maybe of conceptual use....
