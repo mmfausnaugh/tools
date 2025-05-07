@@ -66,10 +66,10 @@ def linfit(x,y,ey):
     The covariance matrix is the inverted Fisher matrix.  Note that
     you must take the square root to get the errors, in all cases.
     """
-    C = sp.array([sp.sum(y/ey/ey),sp.sum(y*x/ey/ey)])
-    A = sp.array([
-            [sp.sum(1./ey/ey), sp.sum(x/ey/ey)],
-            [sp.sum(x/ey/ey),  sp.sum(x*x/ey/ey)]
+    C = np.array([np.sum(y/ey/ey),np.sum(y*x/ey/ey)])
+    A = np.array([
+            [np.sum(1./ey/ey), np.sum(x/ey/ey)],
+            [np.sum(x/ey/ey),  np.sum(x*x/ey/ey)]
             ] )
     p     = linalg.solve(A,C)
     covar = linalg.inv(A)
@@ -92,7 +92,7 @@ def linfit_xerr(x,y,ex,ey):
     Note that leastsq returns the jacobian, a message, and a flag as
     well.
     """
-    merit = lambda p1,x1,xe1,y1,ye1: (y1 - p1[0] - p1[1]*x1)/sp.sqrt((ye1**2 + (p1[1]*xe1)**2))
+    merit = lambda p1,x1,xe1,y1,ye1: (y1 - p1[0] - p1[1]*x1)/np.sqrt((ye1**2 + (p1[1]*xe1)**2))
     p,covar,dum1,dum2,dum3 = optimize.leastsq(merit,x0=[0,0],args=(x,ex,y,ey),xtol = 1e-8,full_output=1)
     return p,covar
 
@@ -125,14 +125,14 @@ def fitfunc_bound(func,pin,x,y,ey,pbound):
     ***********
     
     """
-    merit = lambda params,func,x,y,ey:  sp.sum( (y - func(x,params))**2/ey**2 )
+    merit = lambda params,func,x,y,ey:  np.sum( (y - func(x,params))**2/ey**2 )
     #return with weird object....
     out = optimize.minimize(merit,pin,args=(func,x,y,ey),tol = 1.e-8,method='L-BFGS-B',bounds = pbound,options={'disp':True, 'maxiter':1000})
 #    out = optimize.fmin_bfgs(merit,pin,args=(func,x,y,ey),gtol = 1.e-8)
 #    out = optimize.minimize(merit,pin,args=(func,x,y,ey),tol = 1.e-8,method='SLSQP',bounds = pbound)
 #    print out
 #    print 'success:',out.success
-#    errors = sp.sqrt(ey**2 * out.jac**2)
+#    errors = np.sqrt(ey**2 * out.jac**2)
 #    print out.keys()
 #    print 'iterations:',out.nit,out.nfev#, out.njev, out.nhev
 #    help(out)
@@ -146,19 +146,19 @@ def fitfunc_bound(func,pin,x,y,ey,pbound):
 #sometimes, I just want to see how good a fit to my residuals
 #reproduces white noise.  No weights
 def fit_gaussian(x,y):
-    gauss = lambda x,p: p[2]*sp.exp(-0.5*(x - p[0])**2/p[1]**2)
-    p,covar = fitfunc(gauss, [0.0, 1.0, max(y)], x,y, sp.ones(len(y))  )
+    gauss = lambda x,p: p[2]*np.exp(-0.5*(x - p[0])**2/p[1]**2)
+    p,covar = fitfunc(gauss, [0.0, 1.0, max(y)], x,y, np.ones(len(y))  )
     return p,covar
 ######operations on lightcurves####################
 
 def rms_slide(t,y,win_len):
-    w = sp.ones(win_len)
-    w = w/sp.sum(w)
+    w = np.ones(win_len)
+    w = w/np.sum(w)
     #root of the sliding-mean square
-    rms1 = sp.sqrt( sp.convolve(( y - y.mean() )**2,w,mode='same'))
+    rms1 = np.sqrt( np.convolve(( y - y.mean() )**2,w,mode='same'))
     
     if len(rms1) > len(y):
-        rms1 = sp.ones(len(y))*sp.std(y - y.mean())
+        rms1 = np.ones(len(y))*np.std(y - y.mean())
         
     return rms1
 
@@ -167,24 +167,24 @@ def rebin(x,y,z,bins, use_std=False, rescale_error=False, min_points=None):
     For rebinning data, maybe changing the sampling of a lightcurve
     (to build signal).
     """
-    index = sp.digitize(x,bins)
-    xout = sp.zeros(len(bins) )
-    yout = sp.zeros(len(bins) )
-    zout = sp.zeros(len(bins) )
-    for i in sp.unique(index):
+    index = np.digitize(x,bins)
+    xout = np.zeros(len(bins) )
+    yout = np.zeros(len(bins) )
+    zout = np.zeros(len(bins) )
+    for i in np.unique(index):
         if i == 0 or i == len(bins):
             continue
-        m = sp.where(index == i)[0]
+        m = np.where(index == i)[0]
         if min_points is not None:
             if len(x[m]) < min_points:
                 continue
             
-        xout[i - 1] = sp.mean(x[m])
-        yout[i - 1] = sp.mean(y[m])
+        xout[i - 1] = np.mean(x[m])
+        yout[i - 1] = np.mean(y[m])
         if use_std:
-            zout[i - 1] = sp.std(y[m])
+            zout[i - 1] = np.std(y[m])
         else:
-            zout[i - 1] = sp.mean(z[m])
+            zout[i - 1] = np.mean(z[m])
 
         if rescale_error:
             zout[i -1] = zout[i - 1]/np.sqrt(len(y[m]))
@@ -196,13 +196,13 @@ def rebin(x,y,z,bins, use_std=False, rescale_error=False, min_points=None):
 def gen_lc(t, tau_damp):
     """ alt method for doing a drw"""
 
-    x = sp.randn(t.size)
+    x = np.random.normal(0,1,t.size)
 
     dif =  t - t.reshape(t.size,1)
-    covar = sp.exp(-abs(dif)/tau_damp)
+    covar = np.exp(-abs(dif)/tau_damp)
     l = linalg.cholesky(covar)
 
-    return sp.asarray(x*sp.matrix(l))[0]
+    return np.asarray(x*np.matrix(l))[0]
     
     
 
@@ -224,10 +224,10 @@ class FakeLC(object):
 
     def __init__(self,alpha,t_break,t_turn,
                  low_freq_power=False):
-        self.alpha = sp.sqrt(alpha)
+        self.alpha = np.sqrt(alpha)
 
         if t_break == 0:
-            self.fbreak = sp.inf
+            self.fbreak = np.inf
         else:
             self.fbreak  = 1./t_break
 
@@ -243,9 +243,10 @@ class FakeLC(object):
         fmax = 1./tstep
 
 
-        f = sp.randn(npoints//2 + 1) + sp.randn(npoints//2 + 1)*1j
-        feval = sp.r_[0:fmax:1j*(npoints//2.0 + 1)]
-        p = sp.r_[0.,
+        f = np.random.normal(0,1, npoints//2 + 1
+                             ) + np.random.normal(0,1,npoints//2 + 1)*1j
+        feval = np.r_[0:fmax:1j*(npoints//2.0 + 1)]
+        p = np.r_[0.,
                   (1./feval[1::])**(self.alpha)
                   ]
         
@@ -260,7 +261,7 @@ class FakeLC(object):
         
         f *= p
 
-        f = sp.r_[f,sp.conj(f[-1:0:-1])]
+        f = np.r_[f,np.conj(f[-1:0:-1])]
         #set the mean to 0
         f[0] = 0.0
 
@@ -269,7 +270,7 @@ class FakeLC(object):
         y = 2*(y.real - y.real.min())/(y.real.max() - y.real.min()) - 1 
 
         
-        tout = sp.r_[t[0] : t[-1]  + 1 + tstep : tstep]
+        tout = np.r_[t[0] : t[-1]  + 1 + tstep : tstep]
         interp = interp1d(tout,y)
 
         return interp(t)
@@ -286,10 +287,10 @@ class RandomField(object):
 
     """
     def __init__(self,alpha,r_break,r_turn):
-        self.alpha = sp.sqrt(alpha)
+        self.alpha = np.sqrt(alpha)
 
         if r_break == 0:
-            self.fbreak = sp.inf
+            self.fbreak = np.inf
         else:
             self.fbreak  = 1./r_break
 
@@ -298,20 +299,21 @@ class RandomField(object):
     def __call__(self,nx,ny):
 
 
-        f = sp.randn( (nx + 1 )*(ny//2 + 1) ) + sp.randn( (nx + 1)*(ny//2 + 1) )*1j            
+        f = np.random.normal(0,1, (nx + 1 )*(ny//2 + 1)
+                             ) + np.random.normal(0,1, (nx + 1)*(ny//2 + 1) )*1j            
         f = f.reshape( (nx + 1 ),ny//2 + 1)
         #hermitian condition is tricky
-        f2  = sp.c_[sp.zeros(f.shape)[:,1:],f]
+        f2  = np.c_[np.zeros(f.shape)[:,1:],f]
 
         for i in range(f.shape[0]):
             for j in range(f.shape[1]):
                 if i >= nx//2:
                     if j == 0: 
                         continue
-                f2[i,ny//2 -j ] = sp.conj( f[f.shape[0]-1 - i,j] )
+                f2[i,ny//2 -j ] = np.conj( f[f.shape[0]-1 - i,j] )
 
         #apply the filter
-        r = sp.sqrt( sp.r_[-nx//2:nx//2 + 1]**2 + sp.r_[-ny//2:ny//2 + 1].reshape(ny + 1 ,1)**2)
+        r = np.sqrt( np.r_[-nx//2:nx//2 + 1]**2 + np.r_[-ny//2:ny//2 + 1].reshape(ny + 1 ,1)**2)
         feval = 1/r
 
         p = feval**(-self.alpha)
@@ -322,8 +324,8 @@ class RandomField(object):
 
                     
         #now do the wrap arround
-        f = sp.r_[f2[ny//2::],f2[0:ny//2]]
-        f = sp.c_[f[:,nx//2::],f[:,0:nx//2]]
+        f = np.r_[f2[ny//2::],f2[0:ny//2]]
+        f = np.c_[f[:,nx//2::],f[:,0:nx//2]]
         f[0,0] = 0
        
         z  = fft.ifft2(f*f.size).real
@@ -333,7 +335,7 @@ class RandomField(object):
 class ARModel(object):
     def __init__(self,y, N_memory, mode='timeseries'):
         self.y = y
-        acf = sp.correlate(f,f,'same')
+        acf = np.correlate(f,f,'same')
         self.acf = acf
         self.N_memory = N_memory        
         self.mode = mode
@@ -345,51 +347,51 @@ class ARModel(object):
         else:
             raise ValueError("must instantiate ARModel with mode equal to 'timeseries' or 'acf'")
 
-        self.model_values = sp.convolve(self.y,self.coeffs,'valid')
-        self.undefined_times =  sp.zeros(len(self.y),dtype=bool)
+        self.model_values = np.convolve(self.y,self.coeffs,'valid')
+        self.undefined_times =  np.zeros(len(self.y),dtype=bool)
         self.undefined_times[0:self.N_memory] = True
 
     def fit_coeffs(self, acf, N_memory):        
         acf_roll = []
         for n in range(N_memory):
-            acf_tmp = sp.roll(acf, -(n+1))
+            acf_tmp = np.roll(acf, -(n+1))
             #to avoid wrap around, set the end of the lagged acf to zero
             acf_tmp[-(n+1):] = 0
             acf_roll.append(acf_tmp)
         
-        acf_roll = sp.array(acf_roll)
+        acf_roll = np.array(acf_roll)
     
         #fill in the design matrices
         #len(acf)x1 matrix
         C = []
         for ii in range(len(acf_roll)):
-            C.append(sp.sum(acf*acf_roll[ii]))
-        C = sp.array(C)
+            C.append(np.sum(acf*acf_roll[ii]))
+        C = np.array(C)
 
         #len(acf)xN_memory matrix
         A = []
         for ii in range(len(acf_roll)):
             row = []
             for jj in range(len(acf_roll)):
-                row.append(sp.sum(acf_roll[ii]*acf_roll[jj]))
+                row.append(np.sum(acf_roll[ii]*acf_roll[jj]))
             A.append(row)
-        A = sp.array(A)
+        A = np.array(A)
 
         B = linalg.solve(A,C)
         return B
 
     def get_response(self):
-        extrap = sp.zeros(len(self.coeffs))
+        extrap = np.zeros(len(self.coeffs))
         extrap[-1] = 1.0
         for ii in range(len(self.coeffs)):
-            extrap[len(coeffs) -1 - ii] = sp.sum(extrap*self.coeffs[::-1])
+            extrap[len(coeffs) -1 - ii] = np.sum(extrap*self.coeffs[::-1])
 
         return extrap[::-1]
 
     def extrapolate(self,npredict):
         extrap = self.y[-len(coeffs):]
         for ii in range(npredict):
-            extrap = sp.r_[extrap, sp.sum(extrap[-len(coeffs):]*coeffs[::-1]) ]
+            extrap = np.r_[extrap, np.sum(extrap[-len(coeffs):]*coeffs[::-1]) ]
         return extrap        
 
 def decimal_to_sexigesimal(ra,dec, return_string=True):
@@ -401,8 +403,8 @@ def decimal_to_sexigesimal(ra,dec, return_string=True):
     dec2 = ((dec - dec1)*60).astype(int)
     dec3 = ((dec - dec1)*60 - dec2)*60
 
-    RA  = sp.array(['%i:%02i:%02.4f'%(ra1[i],ra2[i],ra3[i]) for i in range(ra.size)])
-    DEC = sp.array(['%i:%02i:%02.4f'%(dec1[i],dec2[i],dec3[i]) for i in range(dec.size)])
+    RA  = np.array(['%i:%02i:%02.4f'%(ra1[i],ra2[i],ra3[i]) for i in range(ra.size)])
+    DEC = np.array(['%i:%02i:%02.4f'%(dec1[i],dec2[i],dec3[i]) for i in range(dec.size)])
 
     return RA,DEC
 
@@ -442,41 +444,41 @@ def equ_to_ecliptic(ra,dec):
     dec1 = dec*3600/206265.
     obliquity = 23*3600/206265.
     
-#    tan_lam  = (sp.sin(ra1)*sp.cos(obliquity) + sp.tan(dec1)*sp.sin(obliquity))/sp.cos(ra1)
-#    sin_beta = sp.sin(dec1)*sp.cos(obliquity) - sp.cos(dec1)*sp.sin(obliquity)*sp.sin(ra1)
+#    tan_lam  = (np.sin(ra1)*np.cos(obliquity) + np.tan(dec1)*np.sin(obliquity))/np.cos(ra1)
+#    sin_beta = np.sin(dec1)*np.cos(obliquity) - np.cos(dec1)*np.sin(obliquity)*np.sin(ra1)
 #
-#    return sp.arctan(tan_lam)*206265/3600., sp.arcsin(sin_beta)*206265/3600.
+#    return np.arctan(tan_lam)*206265/3600., np.arcsin(sin_beta)*206265/3600.
 
-    sin_beta = sp.sin(dec1)*sp.cos(obliquity) - sp.cos(dec1)*sp.sin(obliquity)*sp.sin(ra1)
-    cos_beta = sp.cos(sp.arcsin(sin_beta))
+    sin_beta = np.sin(dec1)*np.cos(obliquity) - np.cos(dec1)*np.sin(obliquity)*np.sin(ra1)
+    cos_beta = np.cos(np.arcsin(sin_beta))
     
-    cos_lam = sp.cos(dec1)*sp.cos(ra1)/cos_beta
-    sin_lam = sp.cos(dec1)*sp.sin(ra1)*sp.cos(obliquity) + sp.sin(dec1)*sp.sin(obliquity)
+    cos_lam = np.cos(dec1)*np.cos(ra1)/cos_beta
+    sin_lam = np.cos(dec1)*np.sin(ra1)*np.cos(obliquity) + np.sin(dec1)*np.sin(obliquity)
 
-    lam = sp.arctan(sin_lam/cos_lam)
+    lam = np.arctan(sin_lam/cos_lam)
     #quad 2, but thinks it is in quad 4
     m = (cos_lam < 0)*(sin_lam > 0)
-    lam[m] = lam[m] + sp.pi
+    lam[m] = lam[m] + np.pi
     #quad 3, but thinks it is in quad 1
     m = (cos_lam < 0)*(sin_lam < 0)
-    lam[m] += sp.pi
+    lam[m] += np.pi
     #quad 4, turn neg to pos
     m = (cos_lam > 0)*(sin_lam < 0)
-    lam[m] += 2*sp.pi
+    lam[m] += 2*np.pi
     #    if cos_lam > 0 and sin_lam > 0:
  #   #quad 1
  #       print('quad 1')
  #   elif cos_lam < 0 and sin_lam > 0:
  #       #quad 2, but it thinks it is in quad 4
- #       lam += sp.pi
+ #       lam += np.pi
  #   elif cos_lam < 0 and sin_lam < 0:
  #       #quad 3, but it thinks it is in quad 1
- #       lam += sp.pi
+ #       lam += np.pi
  #   elif cos_lam > 0 and sin_lam < 0:
  #      #quad 4
  #       print('quad 4')
         
-    return lam*206265/3600., sp.arcsin(sin_beta)*206265/3600.
+    return lam*206265/3600., np.arcsin(sin_beta)*206265/3600.
     
 ##class MatlabStructure(object):
 ##    """A class to make working with data structures from matlab tractable.
@@ -536,7 +538,7 @@ def equ_to_ecliptic(ra,dec):
 def lumdist(z):
     def E(z,Omega_m):
         #assumes flat universe
-        return 1./sp.sqrt(
+        return 1./np.sqrt(
             Omega_m*(1.+z)**3 + (1. - Omega_m)
         )
     H0 = 70
@@ -568,23 +570,23 @@ def split_list(inlist, nlist):
     """
     A function to split an input list into multiple lists, to run on several cores
     """
-    file_list = sp.genfromtxt(inlist,dtype=str)
+    file_list = np.genfromtxt(inlist,dtype=str)
 
     count = 1
     i0 = 0
     for i in range(file_list.size):
         if i == 0: continue
         if i % nlist == 0:
-            sp.savetxt(inlist+ str(count), sp.c_[file_list[i0:i0 + 1000]], fmt='%s')
+            np.savetxt(inlist+ str(count), np.c_[file_list[i0:i0 + 1000]], fmt='%s')
             io = deepcopy(i)
             count += 1
         elif i == stop -1:
-            sp.savetxt(inlist + str(count),sp.c_[ file_list[i0::]], fmt='%s')
+            np.savetxt(inlist + str(count),np.c_[ file_list[i0::]], fmt='%s')
 
 def detrend_lc_with_splines(t,f,smooth=1.e7):
     #originally developed for akshata, this does a reasonably job of
     #fitting a smooth spline to a TESS 2min LC
-    spline_params = splrep(t,f,w = sp.ones(len(f)), k=3, s= smooth)
+    spline_params = splrep(t,f,w = np.ones(len(f)), k=3, s= smooth)
     return splev(t, spline_params)
 
 
